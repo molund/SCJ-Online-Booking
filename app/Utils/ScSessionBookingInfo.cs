@@ -55,7 +55,7 @@ namespace SCJ.Booking.MVC.Utils
         public string HearingTypeName { get; set; }
 
         /// <summary>Selected long chambers sub‑type ID.</summary>
-        public int? ChambersHearingSubTypeId { get; set; } = 9012;
+        public int ChambersHearingSubTypeId { get; set; }
 
         /// <summary>Display name of the selected long chambers sub‑type.</summary>
         public string ChambersHearingSubTypeName { get; set; } = "";
@@ -75,13 +75,6 @@ namespace SCJ.Booking.MVC.Utils
         /// </summary>
         public int AlternateLocationRegistryId { get; set; }
 
-        /// <summary>
-        /// Registry ID used to submit the booking via the API (e.g., Vancouver is location 1,
-        /// but the formula specifies that all Vancouver family trials are booked in
-        /// location 41).
-        /// </summary>
-        public int BookingLocationRegistryId { get; set; }
-
         /// <summary>Display name of the registry where the appearance is scheduled.</summary>
         public string BookingLocationName { get; set; }
 
@@ -98,17 +91,27 @@ namespace SCJ.Booking.MVC.Utils
         /// <summary>Selected conference time‑slot container ID.</summary>
         public int ContainerId { get; set; }
 
+        /// <summary>
+        /// This is used for conference bookings over Zoom, where the judge is in a different
+        /// location than the parties.
+        /// </summary>
+        public int BookingLocationRegistryId { get; set; }
+
         /// <summary>Conference length in minutes (from available slot details).</summary>
         public int ConferenceLengthMinutes =>
             AvailableConferenceDates?.BookingDetails?.detailBookingLength ?? 0;
 
         /// <summary>Formatted time range for the selected conference slot.</summary>
         public string FormattedConferenceTime =>
-            $"{SelectedConferenceDate:h:mm tt}–{SelectedConferenceDate.AddMinutes(ConferenceLengthMinutes):h:mm tt}".ToLower();
+            SelectedConferenceDate == default
+                ? string.Empty
+                : $"{SelectedConferenceDate:h:mm tt}–{SelectedConferenceDate.AddMinutes(ConferenceLengthMinutes):h:mm tt}".ToLower();
 
         /// <summary>Formatted conference date.</summary>
         public string FormattedConferenceDate =>
-            SelectedConferenceDate.ToString("dddd MMMM d, yyyy");
+            SelectedConferenceDate == default
+                ? string.Empty
+                : SelectedConferenceDate.ToString("dddd MMMM d, yyyy");
 
         /******************************************
           TRIAL & LONG CHAMBERS BOOKING

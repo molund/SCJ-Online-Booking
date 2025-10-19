@@ -251,5 +251,12 @@ namespace SCJ.Booking.MVC.Controllers
         {
             return View();
         }
+
+        [HttpGet]
+        public IActionResult Session()
+        {
+            var bookingInfo = _session.ScBookingInfo;
+            return View(bookingInfo);
+        }
     }
 }

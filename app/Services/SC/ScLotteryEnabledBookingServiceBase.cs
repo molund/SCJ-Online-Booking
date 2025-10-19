@@ -68,7 +68,6 @@ namespace SCJ.Booking.MVC.Services.SC
                 CaseNumber = bookingInfo.CaseNumber,
                 HearingTypeId = bookingInfo.HearingTypeId,
                 AvailableConferenceDates = bookingInfo.AvailableConferenceDates,
-                ConferenceLocationRegistryId = bookingInfo.BookingLocationRegistryId,
                 SelectedRegularDate = bookingInfo.SelectedRegularDate,
                 SelectedFairUseDates = bookingInfo.SelectedFairUseDates,
                 SessionInfo = bookingInfo
