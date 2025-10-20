@@ -3,9 +3,9 @@
 */
 
 // Import partial stylesheets
-@import "variables";
-@import "bootstrapOverrides";
-@import "accessibility";
+@use "variables" as *;
+@use "bootstrapOverrides";
+@use "accessibility";
 
 html,
 body {
@@ -119,12 +119,13 @@ div.invalid-field-message {
         no-repeat;
       background-color: $black;
     }
-
-    background-color: $black;
-    border-top: 10px solid #000;
-    margin-right: auto;
-    padding-left: 0;
-    padding-right: 0;
+    & {
+      background-color: $black;
+      border-top: 10px solid #000;
+      margin-right: auto;
+      padding-left: 0;
+      padding-right: 0;
+    }
   }
 
   .header-logo {
@@ -366,6 +367,11 @@ div.invalid-field-message {
 .availableTimesContainer {
   height: 400px;
   margin-top: 30px;
+
+  @include breakpoint(lg) {
+    margin-left: -30px;
+    margin-right: -30px;
+  }
 }
 
 .no-search-results {
@@ -389,7 +395,7 @@ div.invalid-field-message {
 
 /*Booking Confirmation*/
 .booking-confirmation {
-  margin-top: 24px;
+  margin-top: 12px;
   & > .content {
     margin-top: 30px;
   }
@@ -581,7 +587,9 @@ div#progress-overlay {
   border: 2px solid $blue-dark;
   border-radius: 5px;
   padding: 0.75em 1em;
-  transition: background-color ease 0.2s, color ease 0.2s;
+  transition:
+    background-color ease 0.2s,
+    color ease 0.2s;
 
   &:hover {
     background-color: $blue-medium;

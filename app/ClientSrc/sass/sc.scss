@@ -2,10 +2,11 @@
 * Supreme Court styles
 */
 
-@import "variables";
+@use "variables" as *;
 
 // Step 2: "Choose booking type" fields
-input.EstimatedTrialLength {
+input.EstimatedTrialLength,
+select.EstimatedChambersLength {
   width: 4em;
 }
 
@@ -14,83 +15,66 @@ input.EstimatedTrialLength {
   .form-group {
     select {
       max-width: 350px;
+
+      &.ChambersHearingSubType {
+        max-width: 425px;
+      }
     }
   }
 }
 
-/*Available Times slider*/
-.swiper-container {
-  width: calc(100% - 60px);
+/* Styles added during Vue3 upgrade to make the datepicker use an input
+(for compatibility with the datepicker library) but look like a button so
+it matches the Vue2 design. */
 
-  @include breakpoint(lg) {
-    width: 100% !important;
+.datepicker-input-wrapper {
+  position: relative;
+  width: 100%;
+
+  .datepicker-calendar-icon {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $blue-light;
+    font-size: 1.2em;
+    pointer-events: none;
+    z-index: 2;
   }
 
-  .swiper-slide-active {
-    .custom-slide-header {
-      color: $blue-calendar;
+  &:hover .datepicker-calendar-icon,
+  &:focus-within .datepicker-calendar-icon {
+    color: $white;
+  }
+
+  &:hover input#datepicker.btn.btn-quaternary.btn-block::placeholder,
+  &:focus-within input#datepicker.btn.btn-quaternary.btn-block::placeholder {
+    color: $white !important;
+    opacity: 1;
+  }
+
+  input#datepicker.btn.btn-quaternary.btn-block {
+    @extend .btn;
+    @extend .btn-quaternary;
+    @extend .btn-block;
+    text-align: left;
+    position: relative;
+
+    &:hover,
+    &:focus,
+    &:active {
+      background-color: $blue-medium !important;
+      color: $white !important;
+      border-color: $blue-medium !important;
     }
-  }
-}
 
-.swiper-button-prev {
-  left: 0;
-  color: $blue-medium;
+    &[readonly] {
+      cursor: pointer;
+    }
 
-  @include breakpoint(lg) {
-    left: -30px;
-  }
-}
-
-.swiper-button-next {
-  right: 0;
-  color: $blue-medium;
-
-  @include breakpoint(lg) {
-    right: -30px;
-  }
-}
-
-.custom-slide-header {
-  margin-bottom: 10px;
-  font-weight: bold;
-  text-align: center;
-}
-
-.custom-slide-times {
-  border-radius: 0.3rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  height: 342px;
-  overflow: auto;
-  padding: 10px 8px;
-
-  button {
-    white-space: nowrap;
-    font-size: 1.37rem;
-  }
-}
-
-a.custom-slide-time {
-  display: block;
-  border-radius: 0.3rem;
-  padding: 10px 5px;
-  margin: 5px 5px 10px 5px;
-  cursor: pointer;
-  text-align: center;
-  text-decoration: none;
-  color: $blue;
-  background-color: $blue-active-lighter;
-  border: 1px solid darken(#eff2f5, 10%);
-  font-weight: 700;
-
-  &.selected,
-  &:focus {
-    background-color: $blue-active;
-    color: $white;
-  }
-
-  &:hover {
-    background-color: $blue-active;
-    color: $white;
+    &::placeholder {
+      color: $blue-light;
+      opacity: 1;
+    }
   }
 }

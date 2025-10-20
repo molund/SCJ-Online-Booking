@@ -1,8 +1,9 @@
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
+using System.ServiceModel;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using SCJ.Booking.Data;
 using SCJ.Booking.Data.Constants;
 using SCJ.Booking.MVC.Utils;
 using SCJ.Booking.MVC.ViewModels.SC;
@@ -86,7 +87,7 @@ namespace SCJ.Booking.MVC.Services.SC
                 ? $"{prefix}{model.CaseNumber}"
                 : $"{prefix}{model.SelectedCourtClass}{model.CaseNumber}";
 
-            newModel.CaseSearchResults = await _client.caseNumberValidAsync(searchableCaseNumber);
+            newModel.CaseSearchResults = await _client.scCaseNumberValidAsync(searchableCaseNumber);
 
             if ((newModel.CaseSearchResults?.Length ?? 0) > 0)
             {
@@ -140,10 +141,12 @@ namespace SCJ.Booking.MVC.Services.SC
             {
                 HearingTypeId = bookingInfo.HearingTypeId,
                 HearingTypeName = bookingInfo.HearingTypeName,
-                EstimatedTrialLength = bookingInfo.EstimatedTrialLength,
+                EstimatedTrialLength = bookingInfo.BookingLength,
+                EstimatedChambersLength = bookingInfo.BookingLength,
+                ChambersHearingSubType = bookingInfo.ChambersHearingSubTypeId,
                 IsHomeRegistry = bookingInfo.IsHomeRegistry,
                 IsLocationChangeFiled = bookingInfo.IsLocationChangeFiled,
-                TrialLocationRegistryId = bookingInfo.TrialLocationRegistryId,
+                AlternateLocationRegistryId = bookingInfo.AlternateLocationRegistryId,
                 FutureTrialBooked = bookingInfo.SelectedCourtFile?.futureTrialHearing ?? false,
                 SessionInfo = bookingInfo
             };
@@ -157,7 +160,77 @@ namespace SCJ.Booking.MVC.Services.SC
             bookingInfo.HearingTypeId = model.HearingTypeId;
             bookingInfo.HearingTypeName = ScHearingType.HearingTypeNameMap[model.HearingTypeId];
 
-            if (model.HearingTypeId != ScHearingType.TRIAL)
+            if (model.HearingTypeId == ScHearingType.TRIAL)
+            {
+                bookingInfo.IsHomeRegistry = model.IsHomeRegistry;
+                bookingInfo.IsLocationChangeFiled = model.IsLocationChangeFiled;
+                bookingInfo.BookingLength = model.EstimatedTrialLength;
+
+                if (model.IsHomeRegistry is true)
+                {
+                    // trial is at the home registry
+                    bookingInfo.AlternateLocationRegistryId = bookingInfo.CaseRegistryId;
+                }
+                else if (model.IsHomeRegistry is false && model.IsLocationChangeFiled is true)
+                {
+                    // trial is somewhere besides the home registry
+                    bookingInfo.AlternateLocationRegistryId = model.AlternateLocationRegistryId;
+                }
+
+                bookingInfo.BookingLocationName = await _cache.GetLocationNameAsync(
+                    bookingInfo.AlternateLocationRegistryId
+                );
+
+                FormulaLocation location = await _cache.GetFormulaLocationAsync(
+                    bookingInfo.FormulaType,
+                    bookingInfo.AlternateLocationRegistryId,
+                    bookingInfo.SelectedCourtFile?.courtClassCode,
+                    bookingInfo.HearingTypeId
+                );
+
+                if (location is not null)
+                {
+                    bookingInfo.BookingLocationRegistryId = location.BookingLocationID;
+                }
+            }
+            else if (model.HearingTypeId == ScHearingType.LONG_CHAMBERS)
+            {
+                bookingInfo.IsHomeRegistry = model.IsHomeRegistry;
+                bookingInfo.IsLocationChangeFiled = model.IsLocationChangeFiled;
+                bookingInfo.BookingLength = model.EstimatedChambersLength;
+                bookingInfo.ChambersHearingSubTypeId = model.ChambersHearingSubType;
+                bookingInfo.ChambersHearingSubTypeName = GetChambersHearingSubTypeName(
+                    model.ChambersHearingSubType
+                );
+
+                if (model.IsHomeRegistry is true)
+                {
+                    // trial is at the home registry
+                    bookingInfo.AlternateLocationRegistryId = bookingInfo.CaseRegistryId;
+                }
+                else if (model.IsHomeRegistry is false && model.IsLocationChangeFiled is true)
+                {
+                    // trial is somewhere besides the home registry
+                    bookingInfo.AlternateLocationRegistryId = model.AlternateLocationRegistryId;
+                }
+
+                bookingInfo.BookingLocationName = await _cache.GetLocationNameAsync(
+                    bookingInfo.AlternateLocationRegistryId
+                );
+
+                FormulaLocation location = await _cache.GetFormulaLocationAsync(
+                    bookingInfo.FormulaType,
+                    bookingInfo.AlternateLocationRegistryId,
+                    bookingInfo.SelectedCourtFile?.courtClassCode,
+                    bookingInfo.HearingTypeId
+                );
+
+                if (location is not null)
+                {
+                    bookingInfo.BookingLocationRegistryId = location.BookingLocationID;
+                }
+            }
+            else
             {
                 bookingInfo.BookingLocationRegistryId =
                     await _cache.GetBookingLocationIdAsync(
@@ -169,147 +242,46 @@ namespace SCJ.Booking.MVC.Services.SC
                     bookingInfo.BookingLocationRegistryId
                 );
 
-                bookingInfo.AvailableConferenceDates = await _client.AvailableDatesByLocationAsync(
-                    bookingInfo.BookingLocationRegistryId,
-                    bookingInfo.HearingTypeId
-                );
-            }
-            else
-            {
-                bookingInfo.IsHomeRegistry = model.IsHomeRegistry;
-                bookingInfo.IsLocationChangeFiled = model.IsLocationChangeFiled;
-                bookingInfo.EstimatedTrialLength = model.EstimatedTrialLength;
-
-                if (model.IsHomeRegistry is true)
-                {
-                    // trial is at the home registry
-                    bookingInfo.TrialLocationRegistryId = bookingInfo.CaseRegistryId;
-                }
-                else if (model.IsHomeRegistry is false && model.IsLocationChangeFiled is true)
-                {
-                    // trial is somewhere besides the home registry
-                    bookingInfo.TrialLocationRegistryId = model.TrialLocationRegistryId;
-                }
-
-                bookingInfo.BookingLocationName = await _cache.GetLocationNameAsync(
-                    bookingInfo.TrialLocationRegistryId
-                );
-
-                FormulaLocation location = await _cache.GetFormulaLocationAsync(
-                    bookingInfo.TrialFormulaType,
-                    bookingInfo.TrialLocationRegistryId,
-                    bookingInfo.SelectedCourtFile?.courtClassCode
-                );
-
-                if (location is not null)
-                {
-                    bookingInfo.BookingLocationRegistryId = location.BookingLocationID;
-                }
+                bookingInfo.AvailableConferenceDates =
+                    await _client.scConfAvailableDatesByLocationAsync(
+                        bookingInfo.BookingLocationRegistryId,
+                        bookingInfo.HearingTypeId
+                    );
             }
 
             _session.ScBookingInfo = bookingInfo;
         }
 
-        public async Task<ScAvailableTimesViewModel> LoadAvailableTimesFormAsync()
-        {
-            var bookingInfo = _session.ScBookingInfo;
-
-            //Model instance
-            var model = new ScAvailableTimesViewModel
-            {
-                CaseNumber = bookingInfo.CaseNumber,
-                HearingTypeId = bookingInfo.HearingTypeId,
-                AvailableConferenceDates = bookingInfo.AvailableConferenceDates,
-                ConferenceLocationRegistryId = bookingInfo.BookingLocationRegistryId,
-                SelectedRegularTrialDate = bookingInfo.SelectedRegularTrialDate,
-                SelectedFairUseTrialDates = bookingInfo.SelectedFairUseTrialDates,
-                SessionInfo = bookingInfo
-            };
-
-            model = await LoadAvailableTimesFormulaInfoAsync(model, null);
-
-            model.TrialFormulaType =
-                bookingInfo.FairUseFormula is null && bookingInfo.RegularFormula is not null
-                    ? ScFormulaType.RegularBooking
-                    : bookingInfo.TrialFormulaType;
-
-            return model;
-        }
-
-        public async Task<ScAvailableTimesViewModel> LoadAvailableTimesFormulaInfoAsync(
-            ScAvailableTimesViewModel model,
-            FormulaLocation fairUseFormula
-        )
-        {
-            var bookingInfo = _session.ScBookingInfo;
-
-            fairUseFormula ??= await _cache.GetFormulaLocationAsync(
-                ScFormulaType.FairUseBooking,
-                bookingInfo.TrialLocationRegistryId,
-                bookingInfo.SelectedCourtFile?.courtClassCode ?? ""
-            );
-
-            // The fair use start/end dates are the period inwhich dates are selected for the lottery
-            model.FairUseStartDate = fairUseFormula?.FairUseBookingPeriodStartDate;
-            model.FairUseEndDate = fairUseFormula?.FairUseBookingPeriodEndDate;
-
-            // The fair use "result date" is the date when the lottery takes place and users are notified
-            model.FairUseResultDate = fairUseFormula?.FairUseContactDate;
-
-            // The fair use "selection date" is the period inwhich the trials booked by
-            // the lottery take place. Example: "June 2025" for trials in June 2025
-            model.FairUseSelectionDate = fairUseFormula?.StartDate;
-
-            return model;
-        }
-
-        public async Task SaveAvailableTimesFormAsync(ScAvailableTimesViewModel model)
-        {
-            var bookingInfo = _session.ScBookingInfo;
-
-            // check the schedule again to make sure the time slot wasn't taken by someone else
-            AvailableDatesByLocation schedule = await _client.AvailableDatesByLocationAsync(
-                bookingInfo.BookingLocationRegistryId,
-                bookingInfo.HearingTypeId
-            );
-
-            if (model.ContainerId > 0)
-            {
-                model.TimeSlotExpired = !IsTimeStillAvailable(schedule, model.ContainerId);
-                bookingInfo.ContainerId = model.ContainerId;
-            }
-
-            bookingInfo.SelectedConferenceDate = model.ParsedConferenceDate;
-            bookingInfo.SelectedRegularTrialDate = model.SelectedRegularTrialDate;
-            bookingInfo.SelectedFairUseTrialDates = model
-                .SelectedFairUseTrialDates.Take(ScGeneral.ScMaxTrialDateSelections)
-                .ToList();
-            bookingInfo.TrialFormulaType = model.TrialFormulaType;
-
-            _session.ScBookingInfo = bookingInfo;
-        }
-
-        // Returns booking types from the cache
+        /// <summary>
+        ///     Returns booking types from the cache
+        /// </summary>
         public async Task<List<string>> GetAvailableBookingTypesAsync()
         {
             var supportedTypes = ScHearingType.HearingTypeIdMap.Keys.Select(keyName => keyName);
-            return (await _cache.GetAvailableBookingTypesAsync())
-                .Intersect(supportedTypes)
-                .ToList();
+            try
+            {
+                return (await _cache.GetAvailableBookingTypesAsync())
+                    .Intersect(supportedTypes)
+                    .ToList();
+            }
+            catch (CommunicationException)
+            {
+                if (IsLocalDevEnvironment)
+                {
+                    throw new ConfigurationErrorsException(
+                        "scGetAvailableBookingTypesAsync() failed. Check API_ENDPOINT connection or set USE_FAKE_API=true for localdev."
+                    );
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
 
         public async Task<string> GetLocationNameAsync(int registryId)
         {
             return await _cache.GetLocationNameAsync(registryId);
-        }
-
-        /// <summary>
-        ///     Check if a time slot is still available for a court booking
-        /// </summary>
-        public static bool IsTimeStillAvailable(AvailableDatesByLocation schedule, int containerId)
-        {
-            //check if the container ID is still available
-            return schedule.AvailableDates.Any(x => x.ContainerID == containerId);
         }
 
         /// <summary>
@@ -320,12 +292,26 @@ namespace SCJ.Booking.MVC.Services.SC
         /// </remarks>
         private async Task<CourtFile> GetCourtFile(string searchableCaseNumber)
         {
-            var searchResult = await _client.caseNumberValidAsync(searchableCaseNumber);
+            var searchResult = await _client.scCaseNumberValidAsync(searchableCaseNumber);
             if (!searchResult.Any())
             {
                 return null;
             }
             return searchResult[0];
+        }
+
+        /// <summary>
+        ///    Returns the ChambersHearingSubTypeName for the given subTypeId
+        /// </summary>
+        private string GetChambersHearingSubTypeName(int? subTypeId)
+        {
+            var subTypes = _cache.GetChambersHearingSubTypeDictionary();
+            string chambersHearingSubTypeName = "";
+            if (subTypeId.HasValue && subTypeId > 0 && subTypes.ContainsKey(subTypeId.Value))
+            {
+                chambersHearingSubTypeName = subTypes[subTypeId.Value] as string;
+            }
+            return chambersHearingSubTypeName;
         }
     }
 }
