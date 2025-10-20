@@ -58,16 +58,14 @@ namespace SCJ.Booking.MVC.Services.SC
         /// <summary>
         ///     Loads the available times form with session info
         /// </summary>
-        public async Task<ScAvailableSlotsViewModel> LoadAvailableDatesFormAsync()
+        public async Task<ScLotteryEnabledAvailableSlotsViewModel> LoadAvailableDatesFormAsync()
         {
             var bookingInfo = _session.ScBookingInfo;
 
             //Model instance
-            var model = new ScAvailableSlotsViewModel
+            var model = new ScLotteryEnabledAvailableSlotsViewModel
             {
-                CaseNumber = bookingInfo.CaseNumber,
                 HearingTypeId = bookingInfo.HearingTypeId,
-                AvailableConferenceDates = bookingInfo.AvailableConferenceDates,
                 SelectedRegularDate = bookingInfo.SelectedRegularDate,
                 SelectedFairUseDates = bookingInfo.SelectedFairUseDates,
                 SessionInfo = bookingInfo
@@ -86,8 +84,8 @@ namespace SCJ.Booking.MVC.Services.SC
         /// <summary>
         ///    Loads the available times form with formula info
         /// </summary>
-        public async Task<ScAvailableSlotsViewModel> LoadAvailableDatesFormulaInfoAsync(
-            ScAvailableSlotsViewModel model,
+        public async Task<ScLotteryEnabledAvailableSlotsViewModel> LoadAvailableDatesFormulaInfoAsync(
+            ScLotteryEnabledAvailableSlotsViewModel model,
             FormulaLocation fairUseFormula
         )
         {
@@ -117,7 +115,7 @@ namespace SCJ.Booking.MVC.Services.SC
         /// <summary>
         ///    Saves the available times form to session
         /// </summary>
-        public void SaveAvailableDatesFormAsync(ScAvailableSlotsViewModel model)
+        public void SaveAvailableDatesFormAsync(ScLotteryEnabledAvailableSlotsViewModel model)
         {
             var bookingInfo = _session.ScBookingInfo;
 
@@ -185,7 +183,6 @@ namespace SCJ.Booking.MVC.Services.SC
                         : "ScTrial/Emails/Regular";
             }
 
-            // @TODO: html email body?
             return await _viewRenderService.RenderToStringAsync(template, viewModel);
         }
 
@@ -262,7 +259,7 @@ namespace SCJ.Booking.MVC.Services.SC
             );
         }
 
-        public async Task<bool> CheckIfTrialAlreadyRequestedAsync()
+        public Task<bool> CheckIfTrialAlreadyRequestedAsync()
         {
             // This is required by the interface so the base controller will work with either
             // the trial service or the chambers service. Only the trial service
@@ -270,7 +267,7 @@ namespace SCJ.Booking.MVC.Services.SC
             throw new NotImplementedException();
         }
 
-        public async Task<bool> CheckIfLongChambersAlreadyRequestedAsync()
+        public Task<bool> CheckIfLongChambersAlreadyRequestedAsync()
         {
             // This is required by the interface so the base controller will work with either
             // the trial service or the chambers service. Only the chambers service

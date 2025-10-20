@@ -34,7 +34,7 @@ namespace SCJ.Booking.MVC.Controllers
         {
             var model = await _bookingService.LoadAvailableDatesFormAsync();
 
-            if (string.IsNullOrWhiteSpace(model.CaseNumber))
+            if (string.IsNullOrWhiteSpace(model.SessionInfo.CaseNumber))
             {
                 return RedirectToAction("Index");
             }
@@ -74,10 +74,11 @@ namespace SCJ.Booking.MVC.Controllers
             return View(model);
         }
 
-        protected async Task<IActionResult> AvailableDatesAsync(ScAvailableSlotsViewModel model)
+        protected async Task<IActionResult> AvailableDatesAsync(
+            ScLotteryEnabledAvailableSlotsViewModel model
+        )
         {
             var bookingInfo = _session.ScBookingInfo;
-            model.AvailableConferenceDates = bookingInfo.AvailableConferenceDates;
 
             if (
                 model.FormulaType == ScFormulaType.RegularBooking

@@ -31,7 +31,9 @@ namespace SCJ.Booking.MVC.Controllers
 
         [HttpPost]
         [Route("~/booking/sc-trial/available-dates")]
-        public new async Task<IActionResult> AvailableDatesAsync(ScAvailableSlotsViewModel model)
+        public new async Task<IActionResult> AvailableDatesAsync(
+            ScLotteryEnabledAvailableSlotsViewModel model
+        )
         {
             return await base.AvailableDatesAsync(model);
         }
