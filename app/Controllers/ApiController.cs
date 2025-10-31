@@ -46,7 +46,7 @@ namespace SCJ.Booking.MVC.Controllers
         )
         {
             // call the remote API
-            AvailableDatesByLocation soapResult = await _client.AvailableDatesByLocationAsync(
+            AvailableDatesByLocation soapResult = await _client.scConfAvailableDatesByLocationAsync(
                 locationId,
                 hearingType
             );
@@ -134,6 +134,7 @@ namespace SCJ.Booking.MVC.Controllers
                     LotteryId = l.Id,
                     l.BookingLocationId,
                     l.BookHearingCode,
+                    l.HearingTypeId,
                     l.FairUseBookingPeriodStartDate,
                     l.FairUseBookingPeriodEndDate,
                     l.InitiationTime,
@@ -142,16 +143,16 @@ namespace SCJ.Booking.MVC.Controllers
                         .TrialBookingRequests.OrderBy(x => x.ProcessingTimestamp)
                         .Select(r => new
                         {
-                            r.TrialBookingId,
+                            r.LotteryEntryId,
                             r.FairUseSort,
                             r.LotteryPosition,
                             r.HearingLength,
                             DateSelections = r
-                                .TrialDateSelections.OrderBy(s => s.Rank)
+                                .DateSelections.OrderBy(s => s.Rank)
                                 .Select(s => new
                                 {
                                     s.Rank,
-                                    s.TrialStartDate,
+                                    s.StartDate,
                                     s.BookingResult
                                 }),
                             AllocatedSelectionRank = (int?)(
@@ -181,7 +182,7 @@ namespace SCJ.Booking.MVC.Controllers
             DateTime endDate = startDate.AddMonths(1).AddSeconds(-1);
 
             var requests = await _dbContext
-                .ScTrialBookingRequests.Where(r =>
+                .ScLotteryBookingRequests.Where(r =>
                     r.FairUseBookingPeriodEndDate >= startDate
                     && r.FairUseBookingPeriodEndDate <= endDate
                 )
@@ -201,12 +202,12 @@ namespace SCJ.Booking.MVC.Controllers
                     TrialRequests = g.Select(r => new
                         {
                             r.CreationTimestamp,
-                            r.TrialBookingId,
+                            r.LotteryEntryId,
                             r.FairUseSort,
                             r.HearingLength,
                             DateSelections = r
-                                .TrialDateSelections.OrderBy(s => s.Rank)
-                                .Select(s => new { s.Rank, s.TrialStartDate, }),
+                                .DateSelections.OrderBy(s => s.Rank)
+                                .Select(s => new { s.Rank, s.StartDate, }),
                         })
                         .ToList()
                 })
